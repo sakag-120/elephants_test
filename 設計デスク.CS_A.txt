@@ -1,0 +1,252 @@
+//==================================================
+//　　　　　　　　　Logon_aspx.cs
+//　　　　　　助けるゾウ　設計デスクページ
+//　　　　坂口　裕宜　2019.5.26 最終更新
+//
+//　　バグの原因がわからず、ち〇こもげそうになる
+//==================================================
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+using System.IO;
+using System.Diagnostics;
+using System.Text;//csv読み込み用
+using Microsoft.VisualBasic.FileIO;//parse
+using System.Windows.Forms;
+using System.Threading;
+using System.Data.SqlClient;
+
+
+
+
+
+namespace elephants_test
+{
+    public partial class design_desk : System.Web.UI.Page
+    {
+        protected void Page_Init(object sender, EventArgs e)
+        {
+            if (Session["StaffID"] == null)
+            {
+                Response.Redirect("Logon.aspx");//ログオンせずにアクセスできない設定
+            }
+        }
+
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            Response.Cache.SetCacheability(HttpCacheability.NoCache);
+            //キャッシュしないよう設定
+        }
+         
+
+        protected void Bottun_jidousekkei_Click(object sender, EventArgs e)
+        {
+            //作成者と更新日の書き込み
+            DesignerLabel.Text = Convert.ToString(Session["StaffName"]);
+            DesigndataLabel.Text = DateTime.Now.ToString("yyyy/MM/dd");
+
+            // パイソンプログラムの指定
+            string python = @"C:\Users\75110\Anaconda3\python.exe";
+
+
+            // 仕様書読み込みプログラムコードの指定
+            string myPythonApp = @"C:\elephants\elephants_test\elephants_test\read_shiyou.py";
+
+            // Create new process start info
+            ProcessStartInfo myProcessStartInfo = new ProcessStartInfo(python);
+
+            // 標準出力からの読み込みを可能にする
+            myProcessStartInfo.UseShellExecute = false;
+            myProcessStartInfo.RedirectStandardOutput = true;
+
+            // パイソンコードを実行する
+            // 1st arguments はコードの指定、 2nd and 3rd は送信する値。
+            myProcessStartInfo.Arguments = myPythonApp;
+
+            //仕様書読み込みコード実行準備
+            Process myProcess = new Process();
+            // 実行指示内容の入力
+            myProcess.StartInfo = myProcessStartInfo;
+            
+            // 実行
+            myProcess.Start();
+
+            // 標準出力の読み込み 
+            // でっとロック除けのため、先に標準出力を読み込み、プロセスが終わるのを待つ。:
+            StreamReader myStreamReader = myProcess.StandardOutput;
+            // string myString = myStreamReader.ReadLine();
+            /*複数行読みこみ  string myString = myStreamReader.ReadToEnd() */
+
+            // 仕様書読み込みコードの終了信号を待ち、その後、本プログラムを終了する.
+            myProcess.WaitForExit();
+            myProcess.Close();
+            // write the output we got from python app
+            //  メッセージの表示
+            //HikiateLabel.Text = myString;
+            //パイソンが出力したcsv名を指定 ファイルを読み取り形式で開く
+            //var parser = new TextFieldParser("eleph.csv", Encoding.GetEncoding("Shift-JIS"));
+            //parser.TextFieldType = FieldType.Delimited;
+            //// 区切り文字はコンマ
+            //parser.SetDelimiters(",");
+            //  // Bottun_jidousekkei.AllowDrop = true;
+
+            //while (!parser.EndOfData)
+            //{
+            //    // 1行読み込み
+            //    string[] row = parser.ReadFields();
+            //    foreach (string field in row)
+            //    {
+            //        string f = field;
+            //        // 改行をnで表示
+            //        f = f.Replace("\r\n", "n");
+            //        // 空白を_で表示 
+            //        f = f.Replace(" ", "_");
+            //        // TAB区切りで出力 
+            //        Console.Write(f + "\t");
+            //    }
+            //}
+
+            //if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            //{
+            string fileName = null;//仕様書ファイルのパス格納変数
+
+            var t = new Thread((ThreadStart)(() => {
+                OpenFileDialog op = new OpenFileDialog();
+                op.Title = "ファイルを開く";
+                op.InitialDirectory = @"C:\elephants\elephants_test\elephants_test";
+                op.FileName = @"eleph.csv";
+                op.Filter = "csvファイル(*.csv)|*.csv|すべてのファイル(*.*)|*.*";
+                op.FilterIndex = 1;
+                //オープンファイルダイアログを表示する
+                DialogResult result = op.ShowDialog();
+
+                if (result == DialogResult.OK)
+                {
+                    //「開く」ボタンが選択された時の処理
+                    fileName = op.FileName;  //こんな感じで選択されたファイルのパスが取得できる
+                
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    //「キャンセル」ボタンまたは「×」ボタンが選択された時の処理
+                }
+                
+            }));
+
+            t.SetApartmentState(ApartmentState.STA);
+            t.Start();
+            t.Join();
+
+            TextFieldParser parser = new TextFieldParser(fileName, Encoding.GetEncoding("Shift_JIS"));
+            parser.TextFieldType = FieldType.Delimited;
+            parser.SetDelimiters(",");// ","区切り
+                                      //parser.SetDelimiters("\t");                    // タブ区切り(TSVファイルの場合)
+
+            var shiyou_dic = new Dictionary<string, string>();
+
+            while (!parser.EndOfData)
+            {
+                string[] row = parser.ReadFields();//1行分読み込み
+                shiyou_dic.Add(row[0], row[1]);
+            }
+            // 列名設定
+            //var header = new List<string>();
+            //foreach (var head in rows.First())
+            //{
+            //    header.Add(head);//行の頭のみ読み込み
+            //}
+            //
+            //;
+            //foreach (var row in rows.Skip(1))
+            //{
+            //    var dic = new Dictionary<string, string>();
+            //    foreach (var i in Enumerable.Range(0, row.Length))
+            //    {
+            //        dic.Add(header[i], row[i]);
+            //    }
+            //    shiyou_dic.Add(dic);
+            //}
+
+
+            ////フォームの表示
+            HikiateLabel.Text = shiyou_dic["受注番号"];
+            HikiateNameLabel.Text = shiyou_dic["引き当て先"];
+            ShitenLabel.Text = shiyou_dic["支店"];
+            SalesLabel.Text = shiyou_dic["担当者"];
+            KasouLabel.Text = shiyou_dic["架装型式"];
+            SyasiMakerLabel.Text = shiyou_dic["メーカー"];
+            SyasiLabel.Text = shiyou_dic["車型"];
+
+            ///BOM作成開始
+            string queryString;
+            string connectionString = System.Configuration.ConfigurationManager.
+                            ConnectionStrings["ELEPHANTS_TESTConnectionString"].ConnectionString;
+            int ret = -1;
+
+            switch (shiyou_dic["架装型式"].Substring(0,2))
+            {
+                case "PB": //架装型式がPB~のとき
+                    try
+                    {
+                        queryString = "INSERT  tbl_design(品目番号, 備考, \"No.\") SELECT 品目番号, 備考, \"No.\" FROM tbl_talegate" +
+                      "WHERE \"4 - 1．ドラム板\" =" + shiyou_dic["4 - 1．ドラム板"].Replace("'", "''") +
+                      "";
+                        //接続文字列を取得する
+                        
+                        using (SqlConnection connection = new SqlConnection(connectionString))
+                        {
+                            SqlCommand command = new SqlCommand(queryString, connection);
+                            connection.Open();
+                            Object result = command.ExecuteScalar();
+
+                            if(result != null)
+                            {
+                                ret = (int)result; 
+                            }
+
+                       
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        ret = -1;
+                                            }
+                    break;
+                default:
+                    KasouLabel.Text = "設計マスタに未登録です";
+                    break;
+                    
+            }
+            //string conString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source="
+            //    + + ";Extended Properties=\"text;HDR=No;FMT=Delimited\"";
+            //System.Data.OleDb.OleDbConnection con =
+            //    new System.Data.OleDb.OleDbConnection(conString);
+            //
+            //string commText = "SELECT * FROM [" + csvFileName + "]";
+            //System.Data.OleDb.OleDbDataAdapter da =
+            //    new System.Data.OleDb.OleDbDataAdapter(commText, con);
+            //
+            ////DataTableに格納する
+            //DataTable dt = new DataTable();
+            //da.Fill(dt);
+            //
+            //            var shiyouTable = new Dictionary<string, string>();
+            //shiyouTable.Add
+
+
+        }
+
+        protected void ListBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        protected void SqlDataSource1_Selecting(object sender, SqlDataSourceSelectingEventArgs e)
+        {
+
+        }
+    }
+}
