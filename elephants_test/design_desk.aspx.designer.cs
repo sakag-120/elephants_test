@@ -13,6 +13,15 @@ namespace elephants_test {
     public partial class design_desk {
         
         /// <summary>
+        /// Desk_number コントロール。
+        /// </summary>
+        /// <remarks>
+        /// 自動生成されたフィールド。
+        /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList Desk_number;
+        
+        /// <summary>
         /// Bottun_jidousekkei コントロール。
         /// </summary>
         /// <remarks>
@@ -20,15 +29,6 @@ namespace elephants_test {
         /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button Bottun_jidousekkei;
-        
-        /// <summary>
-        /// DesignerLabel コントロール。
-        /// </summary>
-        /// <remarks>
-        /// 自動生成されたフィールド。
-        /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Label DesignerLabel;
         
         /// <summary>
         /// DesigndataLabel コントロール。
@@ -112,15 +112,6 @@ namespace elephants_test {
         protected global::System.Web.UI.WebControls.SqlDataSource SqlDataSource1;
         
         /// <summary>
-        /// Message コントロール。
-        /// </summary>
-        /// <remarks>
-        /// 自動生成されたフィールド。
-        /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Label Message;
-        
-        /// <summary>
         /// GridView1 コントロール。
         /// </summary>
         /// <remarks>
@@ -128,6 +119,15 @@ namespace elephants_test {
         /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
         /// </remarks>
         protected global::System.Web.UI.WebControls.GridView GridView1;
+        
+        /// <summary>
+        /// Message コントロール。
+        /// </summary>
+        /// <remarks>
+        /// 自動生成されたフィールド。
+        /// 変更するには、フィールドの宣言をデザイナー ファイルから分離コード ファイルに移動します。
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label Message;
         
         /// <summary>
         /// Button1 コントロール。

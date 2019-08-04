@@ -1,9 +1,9 @@
 ﻿//==================================================
 //　　　　　　　design_desk.aspx.cs
 //　　　　　　助けるゾウ　設計デスクページ
-//　　　　坂口　裕宜　2019.7.1 最終更新
+//　　　　坂口　裕宜　2019.7.28 最終更新
 //
-//　　　データベース挿入のためのKEY列の導入
+//　　　列追加のバグ修正
 //==================================================
 using System;
 using System.Collections.Generic;
@@ -41,8 +41,7 @@ namespace elephants_test
 
         protected void Bottun_jidousekkei_Click(object sender, EventArgs e)
         {
-            //作成者と更新日の書き込み
-            DesignerLabel.Text = Convert.ToString(Session["StaffName"]);
+            //更新日の書き込み
             DesigndataLabel.Text = DateTime.Now.ToString("yyyy/MM/dd");
 
             string fileName = null;//仕様書ファイルのパス格納変数
@@ -180,7 +179,7 @@ namespace elephants_test
                 //部品リスト作成のため、仕様項目/部品構成表の名前(順番)、クエリを明記したcsvファイル場所指定         
 
                 //設計テーブルの削除
-                queryString = "DELETE  FROM tbl_design WHERE id = '" + Session["StaffID"] +"';";
+                queryString = "DELETE  FROM tbl_design_" + Session["StaffID"] + " WHERE デスクナンバー = '" + Desk_number.SelectedValue + "';";
                 //row[0]=テーブル名
                 DataTable dtbl = new DataTable();
 
@@ -221,8 +220,8 @@ namespace elephants_test
 
 
                         }
-                  
 
+                        
                         queryString = queryString + "INSERT INTO \"" + row[0] + "\"(品目番号, 品目名称, 備考, " +
                               shiyoukoumoku +
                               " ユーザーネーム, 更新日) SELECT '---設計必要---'," +
@@ -233,10 +232,9 @@ namespace elephants_test
                               "WHERE NOT EXISTS(SELECT 'X' FROM \"" + row[0] + "\" WHERE" +
                               joukenshiki +
                               ");" +
-                              "INSERT tbl_design(品目番号, 備考, 参照表名, id, 条件式) SELECT 品目番号, 備考, " + "'" + row[0] + "', " +
-                              "'"+ Session["StaffID"] + "',  '" + joukenshiki.Replace("'", "''") + "'  " +
-                              "FROM \"" + row[0] + "\" WHERE" +
-                              joukenshiki + ";";
+                              "INSERT tbl_design_" + Session["StaffID"] + "(品目番号, 備考, 参照表名, 個数, 重量, デスクナンバー,　key_tbl) " +
+                              "SELECT 品目番号, 備考, '" + row[0] + "', 個数, 重量, '" + Desk_number.SelectedValue+ "',\"key\" FROM \"" + row[0] + "\" WHERE" +
+                              joukenshiki + ";\n";
 
                         File.WriteAllText(@"C:\elephants\elephants_test\elephants_test\bugbird-web.txt", queryString);
 
@@ -247,6 +245,7 @@ namespace elephants_test
                     SqlCommand command = new SqlCommand(queryString, connection);
                     connection.Open();//接続開始
                     command.ExecuteNonQuery();//設計テーブルにBOM追加
+                    GridView1.DataSource = SqlDataSource1;
                     GridView1.DataBind();
                 }
 
@@ -302,7 +301,7 @@ namespace elephants_test
                     {
                         connection.Open();//接続開始
 
-                        string query_design_add = "INSERT INTO tbl_design(品目番号, 参照表名, 備考, 個数, 重量) VALUES (@品目番号, @参照表名, @備考, @個数, @重量)";
+                        string query_design_add = "INSERT INTO tbl_design_" + Session["StaffID"] + "(品目番号, 参照表名, 備考, 個数, 重量) VALUES (@品目番号, @参照表名, @備考, @個数, @重量)";
                         //string query_design_add = "INSERT INTO tbl_design(品目番号, 備考, 参照表名, id) VALUES +" +
                         //  "('" + (GridView1.FooterRow.FindControl("TextBox1") as TextBox).Text.Trim() + "'," +
                         // "'@備考'," + "" +
@@ -341,23 +340,26 @@ namespace elephants_test
         protected void GridView1_RowUpdating(object sender, GridViewUpdateEventArgs e)
         {
             string connectionString = System.Configuration.ConfigurationManager.
-                          ConnectionStrings["ELEPHANTS_TESTConnectionString"].ConnectionString;
+            ConnectionStrings["ELEPHANTS_TESTConnectionString"].ConnectionString;
+
             try
             {
                 using (SqlConnection sqlCon = new SqlConnection(connectionString))
                 {
                     sqlCon.Open();
-                    string query = "UPDATE tbl_design SET 品目番号=@品目番号,参照表名=@参照表名,個数=@個数,重量=@重量 備考=@備考 WHERE 'key' = @key ";
+                    string query = "UPDATE tbl_design_" + Session["StaffID"] + " SET 品目番号=@品目番号,個数=@個数,重量=@重量 ,備考=@備考 WHERE \"key\" = @key ";
                     SqlCommand sqlCmd = new SqlCommand(query, sqlCon);
                     sqlCmd.Parameters.AddWithValue("@品目番号", (GridView1.Rows[e.RowIndex].FindControl("TextBox1") as System.Web.UI.WebControls.TextBox).Text.Trim());
-                    sqlCmd.Parameters.AddWithValue("@参照表名", (GridView1.Rows[e.RowIndex].FindControl("TextBox2") as System.Web.UI.WebControls.TextBox).Text.Trim());
-                    sqlCmd.Parameters.AddWithValue("@個数", (GridView1.Rows[e.RowIndex].FindControl("TextBox3") as System.Web.UI.WebControls.TextBox).Text.Trim());
+                    sqlCmd.Parameters.AddWithValue("@個数", (GridView1.Rows[e.RowIndex].FindControl("TextBox6") as System.Web.UI.WebControls.TextBox).Text.Trim());
                     sqlCmd.Parameters.AddWithValue("@重量", (GridView1.Rows[e.RowIndex].FindControl("TextBox4") as System.Web.UI.WebControls.TextBox).Text.Trim());
-                    sqlCmd.Parameters.AddWithValue("@備考", (GridView1.Rows[e.RowIndex].FindControl("TextBox5") as System.Web.UI.WebControls.TextBox).Text.Trim());
+                    sqlCmd.Parameters.AddWithValue("@備考", (GridView1.Rows[e.RowIndex].FindControl("TextBox3") as System.Web.UI.WebControls.TextBox).Text.Trim());
+                    sqlCmd.Parameters.AddWithValue("@key", (GridView1.Rows[e.RowIndex].FindControl("Label10") as System.Web.UI.WebControls.Label).Text.Trim());
                     sqlCmd.ExecuteNonQuery();
+                    GridView1.DataSource = SqlDataSource1;
                     GridView1.EditIndex = -1;
                     GridView1.DataBind();
                 }
+                Message.Text = "更新しました";
             }
             catch (Exception)
             {
@@ -365,10 +367,135 @@ namespace elephants_test
             }
         }
 
-        protected void Button_kenzuprint_Click(object sender, EventArgs e)
+        protected void GridView1_RowDeleting(object sender, GridViewDeleteEventArgs e)
         {
+            string connectionString = System.Configuration.ConfigurationManager.
+            ConnectionStrings["ELEPHANTS_TESTConnectionString"].ConnectionString;
+
+            try
+            {
+                using (SqlConnection sqlCon = new SqlConnection(connectionString))
+                {
+                    sqlCon.Open();
+                    string query_ins = "DELETE FROM tbl_design_" + Session["StaffID"] + " WHERE \"key\" = @key";
+                    SqlCommand sqlCmd = new SqlCommand(query_ins, sqlCon);
+                    sqlCmd.Parameters.AddWithValue("@key", (GridView1.Rows[e.RowIndex].FindControl("Label9") as System.Web.UI.WebControls.Label).Text.Trim());
+                    sqlCmd.ExecuteNonQuery();
+                    GridView1.EditIndex = -1;
+                    GridView1.DataSource = SqlDataSource1;
+                    GridView1.DataBind();
+                }
+                Message.Text = "削除しました";
+            }
+            catch (Exception)
+            {
+                Message.Text = "すんません、なんかエラーが出て、削除できませんでした。";
+            }
 
         }
+
+
+        protected void GridView1_RowEditing(object sender, GridViewEditEventArgs e)
+        {
+            GridView1.EditIndex = e.NewEditIndex;
+            GridView1.DataSource = SqlDataSource1;
+            GridView1.DataBind();
+            GridView1.EditRowStyle.BackColor = System.Drawing.Color.Orange;
+        }
+
+        protected void GridView1_RowCancelingEdit(object sender, GridViewCancelEditEventArgs e)
+        {
+            GridView1.EditIndex = -1;
+            GridView1.DataSource = SqlDataSource1;
+            GridView1.DataBind();
+
+        }
+
+        protected void ImageButton5_Click(object sender, ImageClickEventArgs e)
+        {
+            string connectionString = System.Configuration.ConfigurationManager.
+            ConnectionStrings["ELEPHANTS_TESTConnectionString"].ConnectionString;
+
+            try
+            {
+                using (SqlConnection sqlCon = new SqlConnection(connectionString))
+                {
+                    sqlCon.Open();
+                    string query_ins = "INSERT INTO tbl_design_" + Session["StaffID"] + " (品目番号,参照表名,個数,重量,備考) VALUES (@品目番号,@参照表名,@個数,@重量,@備考) ";
+                    SqlCommand sqlCmd = new SqlCommand(query_ins, sqlCon);
+                    sqlCmd.Parameters.AddWithValue("@品目番号", (GridView1.FooterRow.FindControl("TextBox5") as System.Web.UI.WebControls.TextBox).Text.Trim());
+                    sqlCmd.Parameters.AddWithValue("@参照表名", (GridView1.FooterRow.FindControl("TextBox7") as System.Web.UI.WebControls.TextBox).Text.Trim());
+                    sqlCmd.Parameters.AddWithValue("@個数", (GridView1.FooterRow.FindControl("TextBox8") as System.Web.UI.WebControls.TextBox).Text.Trim());
+                    sqlCmd.Parameters.AddWithValue("@重量", (GridView1.FooterRow.FindControl("TextBox9") as System.Web.UI.WebControls.TextBox).Text.Trim());
+                    sqlCmd.Parameters.AddWithValue("@備考", (GridView1.FooterRow.FindControl("TextBox10") as System.Web.UI.WebControls.TextBox).Text.Trim());
+                    sqlCmd.ExecuteNonQuery();
+                    GridView1.EditIndex = -1;
+                    GridView1.DataSource = SqlDataSource1;
+                    GridView1.DataBind();
+                }
+                Message.Text = "挿入しました";
+            }
+            catch (Exception)
+            {
+                Message.Text = "すんません、なんかエラーが出て、挿入できませんでした。";
+            }
+        }
+
+
+        protected void Button_kenzuprint_Click(object sender, EventArgs e)
+        {
+            string connectionString = System.Configuration.ConfigurationManager.
+            ConnectionStrings["ELEPHANTS_TESTConnectionString"].ConnectionString;
+
+            try
+            {
+                using (SqlConnection sqlCon = new SqlConnection(connectionString))
+                {
+                    string queryString, query_push, query_update;
+                   
+                    // 接続します。
+                    sqlCon.Open();
+
+                    // SELECT文を設定します。
+                    queryString = "SELECT * FROM tbl_design_" + Session["StaffID"] + 
+                        " WHERE 備考 LIKE \" % ! % \" AND デスクナンバー = "+ Desk_number.SelectedValue + ";";
+                    query_push = "";
+                    query_update = "";
+
+                    // SQLを実行します。
+                    SqlCommand sqlCmd = new SqlCommand(queryString, sqlCon);
+                    SqlDataReader reader = sqlCmd.ExecuteReader();
+
+                    // 結果を表示します。
+                    while (reader.Read())
+                    {
+                        query_push = query_push +
+                            "UPDATE \"" + (string)reader.GetValue(1) + "\" SET 品目番号='" + (string)reader.GetValue(0) + "',個数='" + (Byte)reader.GetValue(2) + "',重量='" + (Double)reader.GetValue(3) + "' 備考='" + (string)reader.GetValue(4) + "' "+
+                        " ユーザーネーム='" + Session["StaffName"] + "'　更新日='" + DateTime.Now + "' WHERE 'key' = " + (Int32)reader.GetValue(5) + " ;\n";
+                        query_update = query_update + "UPDATE tbl_design_" + Session["StaffID"] + " SET 備考 = REPLACE(備考, '!', '') WHERE 'key' = " + (Int32)reader.GetValue(7) + " ;\n";
+                    }
+                                       
+                    SqlCommand sqlCmd_push = new SqlCommand(query_push, sqlCon);
+                    SqlCommand sqlCmd_update = new SqlCommand(query_update, sqlCon);
+                    sqlCmd.ExecuteNonQuery();
+                    sqlCmd.ExecuteNonQuery();
+                    GridView1.DataSource = SqlDataSource1;
+                    GridView1.DataBind();
+                }
+                Message.Text = "マスタに登録しました";
+            }
+            catch (Exception)
+            {
+                Message.Text = "すんません、なんかエラーが出て、マスタに登録できませんでした";
+            }
+        }
+
+        protected void GridView1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
+
+        }
+
     }
 }
 
